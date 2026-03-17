@@ -183,9 +183,9 @@ def build_trades_pyramid(pair_df: pd.DataFrame, t1: str, t2: str,
             # exit triggered — use locked beta from entry
             exit_economic_spread = p1f - leg["locked_beta"] * p2f
             if direction == "LONG":
-                spread_pnl = round(exit_economic_spread - float(leg["entry_spread"]), 4)
+                spread_pnl = round((exit_economic_spread - float(leg["entry_spread"])) * 10000, 4)
             else:
-                spread_pnl = round(float(leg["entry_spread"]) - exit_economic_spread, 4)
+                spread_pnl = round((float(leg["entry_spread"]) - exit_economic_spread) * 10000, 4)
 
             total_profit = spread_pnl  # no carry for equities
 
