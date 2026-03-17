@@ -1,0 +1,8 @@
+.venv/
+.claude/
+__pycache__/
+*.pyc
+
+# generated at runtime
+data/
+precomputed/

@@ -1,0 +1,1043 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Equity Cointegration Analytics</title>
+<script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,600&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --cream:#f7f3ed;--parchment:#ede5d8;--parchment2:#e4d9c8;
+  --ink:#1c1814;--ink2:#2e2820;--ink3:#46403a;--ink4:#6b6158;
+  --muted:#9a8f84;--rule:#d8cfc4;--rule2:#c8bdb0;
+  --gold:#a07828;--gold2:#c49a3c;--gold-bg:#faf6ec;
+  --green:#2d7a4f;--green2:#4a9e6a;--green-bg:#edf7f2;
+  --red:#9e3a32;--red2:#c4554c;--red-bg:#fdf0ef;
+  --blue:#2a5f8f;--amber:#b06a20;
+  --shadow-sm:0 1px 4px rgba(28,24,20,.06),0 2px 12px rgba(28,24,20,.04);
+  --shadow-md:0 2px 8px rgba(28,24,20,.08),0 8px 32px rgba(28,24,20,.06);
+  --font-display:'Cormorant Garamond',Georgia,serif;
+  --font-body:'DM Sans',sans-serif;
+  --font-mono:'DM Mono',monospace;
+  --radius:6px;--radius-lg:10px;
+}
+body.dark-mode{
+  --cream:#1a1714;--parchment:#252019;--parchment2:#2e2820;
+  --ink:#f0e8dc;--ink2:#e0d4c4;--ink3:#c8bba8;--ink4:#a09080;
+  --muted:#7a6e64;--rule:#3a3228;--rule2:#4a4038;
+  --gold:#c49a3c;--gold2:#d4aa4c;--gold-bg:#2a2418;
+  --green:#4a9e6a;--green2:#5ab87a;--green-bg:#162418;
+  --red:#c4554c;--red2:#d4655c;--red-bg:#2a1614;
+  --blue:#4a8fbf;--amber:#d07a30;
+  --shadow-sm:0 1px 4px rgba(0,0,0,.2),0 2px 12px rgba(0,0,0,.15);
+  --shadow-md:0 2px 8px rgba(0,0,0,.25),0 8px 32px rgba(0,0,0,.2);
+}
+body.dark-mode select,body.dark-mode input[type="date"]{background:var(--parchment);color:var(--ink2);border-color:var(--rule2);color-scheme:dark}
+body.dark-mode .intro-box,body.dark-mode .controls-bar,body.dark-mode .stat-card,body.dark-mode #heatmap-wrap,body.dark-mode .chart-card,body.dark-mode table.trade-table{background:var(--parchment)}
+body.dark-mode table.trade-table tr.row-entry td{background:var(--parchment2)}
+body.dark-mode table.trade-table tr.row-exit td{background:var(--parchment)}
+html,body{background:var(--cream);color:var(--ink);font-family:var(--font-body);font-size:14px;line-height:1.65;min-height:100vh}
+.shell{max-width:1440px;margin:0 auto;padding:0 36px 100px}
+
+/* masthead */
+.masthead{border-bottom:2px solid var(--ink);padding:28px 0 16px;display:flex;align-items:flex-end;justify-content:space-between}
+.publication-tag{font-family:var(--font-mono);font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.publication-title{font-family:var(--font-display);font-size:38px;font-weight:600;color:var(--ink);line-height:1}
+.publication-title em{color:var(--gold);font-style:italic}
+.masthead-right{text-align:right;padding-bottom:4px;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.masthead-date{font-family:var(--font-mono);font-size:10px;color:var(--muted);letter-spacing:.1em}
+.masthead-rule{height:1px;background:var(--rule);margin-top:6px}
+.masthead-meta{display:flex;align-items:center;gap:12px}
+.author-btn{font-family:var(--font-mono);font-size:9px;letter-spacing:.12em;color:var(--muted);background:none;border:none;cursor:pointer;padding:0;transition:color .15s;text-transform:uppercase}
+.author-btn:hover{color:var(--gold)}
+.author-popup{display:none;position:absolute;top:calc(100% + 8px);right:0;background:var(--parchment);border:1px solid var(--rule2);border-radius:var(--radius);padding:14px 18px;min-width:220px;z-index:200;box-shadow:var(--shadow-md)}
+.author-popup.show{display:block}
+.author-popup-name{font-family:var(--font-display);font-size:16px;font-weight:600;color:var(--ink2);margin-bottom:8px}
+.author-popup a{display:block;font-family:var(--font-mono);font-size:10px;color:var(--gold);text-decoration:none;margin-top:4px;letter-spacing:.05em}
+.author-popup a:hover{color:var(--ink2)}
+.author-wrap{position:relative}
+.dark-btn{font-family:var(--font-mono);font-size:9px;letter-spacing:.12em;color:var(--muted);background:var(--parchment);border:1px solid var(--rule2);border-radius:var(--radius);cursor:pointer;padding:4px 10px;transition:all .15s;text-transform:uppercase}
+.dark-btn:hover{color:var(--ink2);border-color:var(--rule)}
+#pair-subtitle{font-family:var(--font-mono);font-size:10px;color:var(--muted);letter-spacing:.1em;margin-top:4px;text-transform:uppercase}
+
+/* intro */
+.intro-box{background:white;border:1px solid var(--rule);border-left:3px solid var(--gold2);border-radius:var(--radius);padding:20px 24px;margin:24px 0 32px;box-shadow:var(--shadow-sm)}
+.intro-box h2{font-family:var(--font-display);font-size:20px;font-weight:600;color:var(--ink2);margin-bottom:10px}
+.intro-box p{font-size:13px;color:var(--ink3);line-height:1.75;max-width:920px}
+.intro-box p+p{margin-top:8px}
+
+/* controls bar */
+.controls-bar{background:white;border:1px solid var(--rule);border-radius:var(--radius-lg);padding:18px 22px;margin-bottom:32px;box-shadow:var(--shadow-sm)}
+.controls-bar-title{font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.2em;color:var(--muted);margin-bottom:14px;display:flex;align-items:center;gap:10px}
+.controls-bar-title::after{content:'';flex:1;height:1px;background:var(--rule)}
+.controls-grid{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-end}
+.ctrl-group{display:flex;flex-direction:column;gap:4px;position:relative}
+.ctrl-label{font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.18em;color:var(--muted);display:flex;align-items:center;gap:6px}
+select,input[type="date"]{background:white;color:var(--ink2);border:1px solid var(--rule2);border-radius:var(--radius);padding:7px 12px;font-size:12px;font-family:var(--font-body);cursor:pointer;outline:none;box-shadow:var(--shadow-sm);transition:border-color .15s}
+select{min-width:170px;appearance:none;padding-right:32px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%239a8f84'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+input[type="date"]{min-width:150px;color-scheme:light}
+select:focus,select:hover,input[type="date"]:focus,input[type="date"]:hover{border-color:var(--gold2);outline:none}
+.controls-divider{width:1px;background:var(--rule);align-self:stretch;margin:0 4px}
+
+/* tooltip */
+.info-btn{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;border:1px solid var(--rule2);background:var(--parchment);font-size:9px;color:var(--muted);cursor:pointer;font-family:var(--font-mono);line-height:1;transition:border-color .15s,color .15s;flex-shrink:0}
+.info-btn:hover{border-color:var(--gold2);color:var(--gold)}
+.tooltip-wrap{position:relative;display:inline-flex;align-items:center}
+.tooltip-box{display:none;position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:var(--ink2);color:#f0e8dc;font-family:var(--font-body);font-size:11px;line-height:1.5;padding:10px 14px;border-radius:var(--radius);width:260px;z-index:100;box-shadow:0 4px 20px rgba(28,24,20,.2);pointer-events:none}
+.tooltip-box::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:var(--ink2)}
+.tooltip-wrap:hover .tooltip-box{display:block}
+
+/* section labels */
+.section-label{font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.2em;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:12px}
+.section-label::before{content:'';width:20px;height:1px;background:var(--gold2);flex-shrink:0}
+.section-label::after{content:'';flex:1;height:1px;background:var(--rule)}
+
+/* heatmap */
+#heatmap-wrap{background:white;border:1px solid var(--rule);border-radius:var(--radius-lg);padding:8px;margin-bottom:44px;box-shadow:var(--shadow-sm);overflow:hidden}
+#heatmap-table-wrap{overflow-x:auto;padding:8px 4px;display:flex;justify-content:center}
+table.hm-table{border-collapse:separate;border-spacing:2px;font-family:var(--font-mono);font-size:10px}
+table.hm-table th{color:var(--muted);font-weight:400;padding:4px 6px;text-align:right}
+th.row-head{text-align:right;padding-right:12px;color:var(--ink3);font-size:10px;white-space:nowrap}
+td.hm-cell{width:54px;height:32px;text-align:center;border-radius:4px;cursor:pointer;font-size:9px;font-family:var(--font-mono);transition:transform .12s,box-shadow .12s;position:relative}
+td.hm-cell:hover{transform:scale(1.1);box-shadow:0 0 0 2px var(--gold),0 4px 14px rgba(28,24,20,.15);z-index:10}
+td.hm-cell.diagonal{background:var(--cream)!important;color:var(--rule2)!important;cursor:default}
+td.hm-null{background:var(--cream);cursor:default}
+td.hm-cell.above-threshold{background:#f5f5f3!important;color:#c8c0b8!important;cursor:pointer}
+
+/* loading */
+#loading{display:none;text-align:center;padding:24px;font-family:var(--font-mono);font-size:10px;color:var(--muted);letter-spacing:.15em;text-transform:uppercase}
+.loading-inner{display:inline-flex;align-items:center;gap:12px}
+.loading-spin{width:14px;height:14px;border:2px solid var(--rule2);border-top-color:var(--gold);border-radius:50%;animation:spin .75s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* pair header */
+#pair-header{display:none;align-items:baseline;gap:20px;margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid var(--rule);flex-wrap:wrap}
+#pair-title{font-family:var(--font-display);font-size:36px;font-weight:600;color:var(--ink);letter-spacing:.02em;line-height:1}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:5px 14px;border-radius:20px;font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.16em;font-weight:500;border:1px solid}
+.badge-long{background:var(--green-bg);color:var(--green);border-color:rgba(45,122,79,.25)}
+.badge-short{background:var(--red-bg);color:var(--red);border-color:rgba(158,58,50,.25)}
+.badge-none{background:var(--parchment);color:var(--muted);border-color:var(--rule2)}
+
+/* stats */
+#stats-row{display:none;gap:14px;margin-bottom:32px;flex-wrap:wrap}
+.stat-card{background:white;border:1px solid var(--rule);border-radius:var(--radius);padding:16px 20px;min-width:130px;flex:1;box-shadow:var(--shadow-sm);transition:box-shadow .2s,border-color .2s}
+.stat-card:hover{box-shadow:var(--shadow-md);border-color:var(--rule2)}
+.stat-card .label{font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.18em;color:var(--muted);margin-bottom:8px}
+.stat-card .value{font-family:var(--font-display);font-size:28px;font-weight:600;color:var(--ink2);line-height:1}
+.stat-card .value.pos{color:var(--green)}
+.stat-card .value.neg{color:var(--red)}
+.stat-card .value.gold{color:var(--gold)}
+
+/* proposed */
+#proposed-box{display:none;background:var(--gold-bg);border:1px solid rgba(160,120,40,.2);border-left:3px solid var(--gold2);border-radius:var(--radius);padding:18px 22px;margin-bottom:32px;box-shadow:var(--shadow-sm)}
+#proposed-box .pt-label{font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.2em;color:var(--gold);margin-bottom:8px}
+#proposed-text{font-size:13px;color:var(--ink3);line-height:1.75}
+#proposed-text strong{color:var(--gold);font-weight:600}
+#proposed-text em{color:var(--ink2);font-style:normal;font-weight:500}
+
+/* charts */
+#charts-section{display:none}
+.chart-card{background:white;border:1px solid var(--rule);border-radius:var(--radius-lg);padding:4px;margin-bottom:16px;box-shadow:var(--shadow-sm);overflow:hidden}
+.chart-row-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.shading-legend{display:flex;gap:20px;margin-bottom:14px;flex-wrap:wrap}
+.legend-item{display:flex;align-items:center;gap:7px;font-family:var(--font-mono);font-size:9px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+.legend-swatch{width:16px;height:10px;border-radius:2px}
+.swatch-cointegrated{background:rgba(45,122,79,.10);border:1px solid rgba(45,122,79,.3)}
+.swatch-stable{background:rgba(45,122,79,.25);border:1px solid rgba(45,122,79,.5)}
+
+/* blotter table */
+#trade-section{display:none;margin-top:44px}
+.divider{height:1px;background:linear-gradient(90deg,transparent,var(--rule2),transparent);margin:44px 0 36px}
+.blotter-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.copy-btn{font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.15em;color:var(--muted);background:white;border:1px solid var(--rule2);border-radius:var(--radius);padding:5px 12px;cursor:pointer;transition:all .2s}
+.copy-btn:hover{color:var(--ink2);border-color:var(--rule2);background:var(--parchment)}
+.copy-btn.copied{color:var(--green);border-color:var(--green)}
+.export-btn{font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.15em;color:var(--muted);background:white;border:1px solid var(--rule2);border-radius:var(--radius);padding:5px 12px;cursor:pointer;transition:all .2s;margin-left:12px}
+.export-btn:hover{color:var(--blue);border-color:var(--blue);background:#f0f4f8}
+.export-btn.done{color:var(--green);border-color:var(--green)}
+table.trade-table{width:100%;border-collapse:collapse;font-family:var(--font-mono);font-size:11px;background:white;border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--rule);box-shadow:var(--shadow-sm)}
+table.trade-table thead tr{background:var(--parchment);border-bottom:1px solid var(--rule2)}
+table.trade-table th{padding:10px;text-align:right;font-weight:500;font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--ink4)}
+table.trade-table th:first-child,table.trade-table td:first-child,
+table.trade-table th:nth-child(2),table.trade-table td:nth-child(2){text-align:left}
+table.trade-table td{padding:7px 10px;text-align:right;border-bottom:1px solid var(--cream);color:var(--ink3);font-size:11px}
+table.trade-table tr.row-entry td{background:#fafaf8}
+table.trade-table tr.row-exit td{background:white}
+table.trade-table tr:hover td{background:var(--parchment)!important;color:var(--ink2)}
+table.trade-table tr.trade-divider td{border-top:1px solid var(--rule);padding-top:10px}
+/* diagnostic chart tooltips */
+.diag-card{position:relative}
+.diag-info-btn{position:absolute;top:10px;right:10px;width:18px;height:18px;border-radius:50%;background:var(--parchment);border:1px solid var(--rule2);font-family:var(--font-mono);font-size:10px;color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:default;z-index:10;line-height:1}
+.diag-tooltip{display:none;position:absolute;top:34px;right:10px;background:var(--ink2);color:#f0e8dc;font-family:var(--font-body);font-size:11px;line-height:1.6;padding:10px 14px;border-radius:var(--radius);width:240px;z-index:100;box-shadow:0 4px 20px rgba(28,24,20,.2);pointer-events:none}
+.diag-card:hover .diag-tooltip{display:block}
+.dir-long{color:var(--green)!important;font-weight:500}
+.dir-short{color:var(--red)!important;font-weight:500}
+.profit-pos{color:var(--green)!important;font-weight:500}
+.profit-neg{color:var(--red)!important;font-weight:500}
+.row-open{background:rgba(180,140,60,0.08)}
+.open-pnl{color:var(--gold)!important;font-weight:500}
+.open-badge{font-size:10px;font-weight:600;background:var(--gold);color:#000;border-radius:3px;padding:1px 4px;margin-left:4px;vertical-align:middle;opacity:0.85}
+.fade-in{animation:fadeUp .3s ease both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.no-data{padding:40px;text-align:center;color:var(--muted);font-family:var(--font-mono);font-size:10px;letter-spacing:.15em;text-transform:uppercase}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--cream)}
+::-webkit-scrollbar-thumb{background:var(--rule2);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--muted)}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<div class="masthead">
+  <div>
+    <div class="publication-tag">Equity Analytics</div>
+    <div class="publication-title">Equity <em>Cointegration</em></div>
+  </div>
+  <div class="masthead-right">
+    <div class="masthead-meta">
+      <button class="dark-btn" id="darkModeBtn" onclick="toggleDark()">☽ Dark</button>
+      <div class="author-wrap">
+        <button class="author-btn" onclick="toggleAuthor()">Khalid Khan</button>
+        <div class="author-popup" id="authorPopup">
+          <div class="author-popup-name">Khalid Khan</div>
+        </div>
+      </div>
+    </div>
+    <div class="masthead-date" id="clock">—</div>
+    <div class="masthead-rule"></div>
+  </div>
+</div>
+
+<div class="intro-box">
+  <h2>What is this dashboard?</h2>
+  <p>Two equities are <strong>cointegrated</strong> when their log prices tend to move together over time — not perfectly in lockstep, but anchored by a long-run relationship. When one stock drifts too far from that relationship, it tends to snap back. This dashboard identifies those moments and shows the historical track record of trading that reversion.</p>
+  <p>The <strong>heatmap</strong> shows which pairs within each GICS sector are currently cointegrated — green means the relationship is statistically significant. Click any cell to load the full analysis for that pair: log-price history, spread dynamics, trade signals, a simulated backtest, and a live trade recommendation if conditions are met right now.</p>
+  <p>All prices are <strong>log-transformed</strong> before regression. The spread is <em>log(P₁) − β · log(P₂)</em> — a dimensionless log-return residual. PnL is expressed in log-spread units. Pairs are sourced from GICS sectors via yfinance.</p>
+</div>
+
+<div class="controls-bar">
+  <div class="controls-bar-title">Parameters</div>
+  <div class="controls-grid">
+
+    <div class="ctrl-group">
+      <div class="ctrl-label">Sector
+        <div class="tooltip-wrap"><span class="info-btn">i</span>
+          <div class="tooltip-box">Filter to a single GICS sector. Pairs within the same sector share common risk factors, making cointegration more economically meaningful.</div>
+        </div>
+      </div>
+      <select id="sectorSelect"></select>
+    </div>
+
+    <div class="ctrl-group">
+      <div class="ctrl-label">Window
+        <div class="tooltip-wrap"><span class="info-btn">i</span>
+          <div class="tooltip-box">Number of trading days used for each rolling calculation. 126 days (6 months) balances stability and responsiveness.</div>
+        </div>
+      </div>
+      <select id="windowSelect"></select>
+    </div>
+
+    <div class="controls-divider"></div>
+
+    <div class="ctrl-group">
+      <div class="ctrl-label">P-Value Threshold
+        <div class="tooltip-wrap"><span class="info-btn">i</span>
+          <div class="tooltip-box">Only pairs below this threshold are highlighted as cointegrated. 0.05 means a 5% chance the relationship is random. Lower = more selective.</div>
+        </div>
+      </div>
+      <select id="pvalueSelect">
+        <option value="0.01">0.01 — very strict</option>
+        <option value="0.05" selected>0.05 — standard</option>
+        <option value="0.10">0.10 — relaxed</option>
+      </select>
+    </div>
+
+    <div class="ctrl-group">
+      <div class="ctrl-label">Entry Trigger (σ)
+        <div class="tooltip-wrap"><span class="info-btn">i</span>
+          <div class="tooltip-box">How far the spread must deviate (in σ) before a trade is entered. A second position is added automatically at entry + 1σ.</div>
+        </div>
+      </div>
+      <select id="entryZSelect">
+        <option value="0.5">0.5σ — aggressive</option>
+        <option value="1" selected>1σ — moderate</option>
+        <option value="2">2σ — selective</option>
+        <option value="3">3σ — very selective</option>
+      </select>
+    </div>
+
+    <div class="ctrl-group">
+      <div class="ctrl-label">Profit Target (σ per leg)
+        <div class="tooltip-wrap"><span class="info-btn">i</span>
+          <div class="tooltip-box">Each leg exits when z-score reverts by this amount from its entry. e.g. entered at -1σ with 0.5σ target exits at -0.5σ.</div>
+        </div>
+      </div>
+      <select id="pnlTargetSelect">
+        <option value="0.5" selected>0.5σ — quick exit</option>
+        <option value="1">1σ — standard</option>
+        <option value="1.5">1.5σ — patient</option>
+        <option value="2">2σ — full reversion</option>
+      </select>
+    </div>
+
+    <div class="ctrl-group">
+      <div class="ctrl-label">Hurst Max
+        <div class="tooltip-wrap"><span class="info-btn">i</span>
+          <div class="tooltip-box">Maximum Hurst exponent allowed for trade entry. Values below 0.5 indicate mean-reversion. Trades are blocked when Hurst exceeds this threshold.</div>
+        </div>
+      </div>
+      <select id="hurstMaxSelect">
+        <option value="0.3">0.3 — strict</option>
+        <option value="0.5">0.5 — mean-reversion only</option>
+        <option value="0.75" selected>0.75 — relaxed</option>
+        <option value="1.0">1.0 — off</option>
+      </select>
+    </div>
+
+    <div class="controls-divider"></div>
+
+    <div class="ctrl-group">
+      <div class="ctrl-label">Heatmap As-Of Date
+        <div class="tooltip-wrap"><span class="info-btn">i</span>
+          <div class="tooltip-box">Show the heatmap as it looked on a specific date. Leave blank for latest available data.</div>
+        </div>
+      </div>
+      <input type="date" id="asofDate">
+    </div>
+
+  </div>
+</div>
+
+<div class="section-label">P-Value Heatmap — click a cell to load pair</div>
+<div id="heatmap-wrap">
+  <div id="heatmap-table-wrap"><div class="no-data">Loading…</div></div>
+</div>
+
+<div id="loading"><div class="loading-inner"><div class="loading-spin"></div>Loading pair data</div></div>
+
+<div id="pair-header" class="fade-in">
+  <div>
+    <div id="pair-title"></div>
+    <div id="pair-subtitle"></div>
+  </div>
+  <div id="signal-badge" class="badge badge-none">No Signal</div>
+  <button class="export-btn" id="export-csv-btn" onclick="exportPairCSV()">&#8595; Export CSV</button>
+</div>
+
+<div id="stats-row" class="fade-in">
+  <div class="stat-card"><div class="label">Backtest PnL</div><div id="stat-pnl" class="value">—</div></div>
+  <div class="stat-card"><div class="label">Win Rate</div><div id="stat-wr" class="value">—</div></div>
+  <div class="stat-card"><div class="label">Total Trades</div><div id="stat-n" class="value">—</div></div>
+  <div class="stat-card"><div class="label">Current P-Value</div><div id="stat-pv" class="value">—</div></div>
+  <div class="stat-card"><div class="label">Current Z-Score</div><div id="stat-z" class="value">—</div></div>
+  <div class="stat-card"><div class="label">Half-Life (days)</div><div id="stat-hl" class="value">—</div></div>
+  <div class="stat-card"><div class="label">Beta (current)</div><div id="stat-beta" class="value">—</div></div>
+  <div class="stat-card"><div class="label">Beta Stability CV</div><div id="stat-cv" class="value">—</div></div>
+</div>
+
+<div id="proposed-box" class="fade-in">
+  <div class="pt-label">Proposed Trade</div>
+  <div id="proposed-text"></div>
+</div>
+
+<div id="charts-section" class="fade-in">
+  <div class="shading-legend">
+    <div class="legend-item"><div class="legend-swatch swatch-cointegrated"></div>Cointegrated (p-value below threshold)</div>
+    <div class="legend-item"><div class="legend-swatch swatch-stable"></div>Cointegrated + Hurst below max — trades allowed</div>
+  </div>
+
+  <div class="section-label">Log Prices, Spread, Signal &amp; Performance</div>
+  <div class="chart-card"><div id="chart-master"></div></div>
+
+  <div class="section-label">Diagnostics</div>
+  <div class="chart-row-2">
+    <div class="chart-card diag-card">
+      <div class="diag-info-btn">i</div>
+      <div class="diag-tooltip">Rolling beta measures the log-price elasticity: how much T2 log-price moves per unit of T1 log-price. The CV (coefficient of variation) measures beta stability — lower is more stable. Hurst below 0.5 indicates mean-reversion in the spread.</div>
+      <div id="chart-beta"></div>
+    </div>
+    <div class="chart-card diag-card">
+      <div class="diag-info-btn">i</div>
+      <div class="diag-tooltip">Half-life estimates how many days it takes for the log-spread to revert halfway to its mean. Shorter is better for trading — values above ~60 days suggest slow or unreliable reversion. Spikes indicate instability.</div>
+      <div id="chart-halflife"></div>
+    </div>
+  </div>
+</div>
+
+<div id="trade-section" class="fade-in">
+  <div class="divider"></div>
+  <div class="blotter-header">
+    <div class="section-label" style="margin-bottom:0">Trade Blotter</div>
+    <button class="copy-btn" id="copy-blotter-btn" onclick="copyBlotterToClipboard()">⬇ Copy to Clipboard</button>
+  </div>
+  <table class="trade-table">
+    <thead><tr>
+      <th>Trade</th>
+      <th>Type</th>
+      <th>Date</th>
+      <th>Days Held</th>
+      <th>Dir</th>
+      <th>T1</th>
+      <th>T2</th>
+      <th>T1 Log Px</th>
+      <th>T2 Log Px</th>
+      <th>Spread</th>
+      <th>Z</th>
+      <th>Trade Beta</th>
+      <th>Rolling Beta</th>
+      <th>Spread PnL</th>
+      <th>Total PnL</th>
+    </tr></thead>
+    <tbody id="trade-body"></tbody>
+  </table>
+</div>
+
+</div><!-- /shell -->
+
+<script>
+// ── Plotly theme ──────────────────────────────────────────────────────────────
+const SURFACE="#ffffff", GRID="#ede5d8", GRID2="#d8cfc4";
+const TEXT="#1c1814", TEXT2="#3a3428", MUTED="#7a6e64";
+const GOLD="#a07828", GREEN="#2d7a4f", GREEN2="#4a9e6a";
+const RED="#9e3a32", RED2="#c4554c", BLUE="#2a5f8f", AMBER="#b06a20";
+
+const BASE_LAYOUT = {
+  paper_bgcolor: SURFACE, plot_bgcolor: SURFACE,
+  font: { color: TEXT, family: "DM Mono, monospace", size: 11 },
+  xaxis: { gridcolor: GRID, zerolinecolor: GRID2, color: TEXT2, tickfont: { size: 10, color: TEXT2 }, linecolor: GRID2 },
+  yaxis: { automargin: false, gridcolor: GRID, zerolinecolor: GRID2, color: TEXT2, tickfont: { size: 10, color: TEXT2 }, linecolor: GRID2 },
+  margin: { l: 80, r: 32, t: 44, b: 40, autoexpand: false },
+  showlegend: true,
+  legend: {
+    orientation: "h",
+    x: 0.01, xanchor: "left",
+    y: 1.0, yanchor: "bottom",
+    bgcolor: "rgba(255,255,255,0.85)", bordercolor: GRID2, borderwidth: 1,
+    font: { color: TEXT, size: 10, family: "DM Mono, monospace" }
+  },
+  hovermode: "x unified",
+  hoverlabel: { bgcolor: "#fff8f0", bordercolor: GRID2, font: { color: TEXT, size: 11, family: "DM Mono, monospace" } },
+};
+function mkLayout(extra = {}) { return Object.assign(JSON.parse(JSON.stringify(BASE_LAYOUT)), extra); }
+function mkLine(x, y, name, color, dash = "solid", width = 1.8) {
+  return { x, y, name, type: "scatter", mode: "lines", line: { color, width, dash }, connectgaps: false };
+}
+
+// ── Clock ─────────────────────────────────────────────────────────────────────
+function updateClock() { document.getElementById("clock").textContent = new Date().toUTCString().slice(0, 25).replace("GMT", "UTC"); }
+updateClock(); setInterval(updateClock, 1000);
+
+// ── Dark mode ─────────────────────────────────────────────────────────────────
+function toggleDark() {
+  document.body.classList.toggle("dark-mode");
+  document.getElementById("darkModeBtn").textContent =
+    document.body.classList.contains("dark-mode") ? "☀ Light" : "☽ Dark";
+}
+
+// ── Author popup ──────────────────────────────────────────────────────────────
+function toggleAuthor() {
+  document.getElementById("authorPopup").classList.toggle("show");
+}
+document.addEventListener("click", e => {
+  const wrap = document.querySelector(".author-wrap");
+  if (wrap && !wrap.contains(e.target)) document.getElementById("authorPopup").classList.remove("show");
+});
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let currentSector = null, currentWindow = null, currentT1 = null, currentT2 = null;
+
+// ── Shading helper ────────────────────────────────────────────────────────────
+function shadingShapes(dates, flags, color) {
+  const shapes = []; let start = null;
+  for (let i = 0; i < flags.length; i++) {
+    if (flags[i] && start === null) { start = i; }
+    else if (!flags[i] && start !== null) {
+      shapes.push({ type: "rect", xref: "x", yref: "paper", x0: dates[start > 0 ? start - 1 : start], x1: dates[i - 1], y0: 0, y1: 1, fillcolor: color, opacity: 1, line: { width: 0 }, layer: "below" });
+      start = null;
+    }
+  }
+  if (start !== null) shapes.push({ type: "rect", xref: "x", yref: "paper", x0: dates[start > 0 ? start - 1 : start], x1: dates[dates.length - 1], y0: 0, y1: 1, fillcolor: color, opacity: 1, line: { width: 0 }, layer: "below" });
+  return shapes;
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+document.addEventListener("DOMContentLoaded", async () => {
+  const [sectors, windows] = await Promise.all([
+    fetch("/api/sectors").then(r => r.json()),
+    fetch("/api/windows").then(r => r.json()),
+  ]);
+  const ss = document.getElementById("sectorSelect");
+  sectors.forEach(s => { const o = document.createElement("option"); o.value = o.textContent = s; ss.appendChild(o); });
+  const ws = document.getElementById("windowSelect");
+  windows.forEach(w => { const o = document.createElement("option"); o.value = w; o.textContent = w + "-day window"; ws.appendChild(o); });
+
+  currentSector = ss.value;
+  currentWindow = ws.value;
+  loadHeatmap();
+
+  ss.addEventListener("change", () => { currentSector = ss.value; currentT1 = null; currentT2 = null; loadHeatmap(); hidePair(); });
+  ws.addEventListener("change", () => { currentWindow = ws.value; loadHeatmap(); if (currentT1) reloadPair(); });
+  document.getElementById("pvalueSelect").addEventListener("change", () => { loadHeatmap(); if (currentT1) reloadPair(); });
+  document.getElementById("entryZSelect").addEventListener("change", () => { if (currentT1) reloadPair(); });
+  document.getElementById("pnlTargetSelect").addEventListener("change", () => { if (currentT1) reloadPair(); });
+  document.getElementById("hurstMaxSelect").addEventListener("change", () => { loadHeatmap(); if (currentT1) reloadPair(); });
+  document.getElementById("asofDate").addEventListener("change", () => { loadHeatmap(); });
+});
+
+function getParams() {
+  return {
+    pvalue:    parseFloat(document.getElementById("pvalueSelect").value),
+    entry_z:   parseFloat(document.getElementById("entryZSelect").value),
+    pnl_target:parseFloat(document.getElementById("pnlTargetSelect").value),
+    hurst_max: parseFloat(document.getElementById("hurstMaxSelect").value),
+    asof:      document.getElementById("asofDate").value || "",
+  };
+}
+function reloadPair() { if (currentT1 && currentT2) loadPair(currentT1, currentT2); }
+
+// ── Heatmap ───────────────────────────────────────────────────────────────────
+async function loadHeatmap() {
+  const wrap = document.getElementById("heatmap-table-wrap");
+  wrap.innerHTML = '<div class="no-data">Loading…</div>';
+  const p = getParams();
+  const asofParam = p.asof ? `&asof=${p.asof}` : "";
+  const data = await fetch(`/api/heatmap?sector=${encodeURIComponent(currentSector)}&window=${currentWindow}&pvalue=${p.pvalue}${asofParam}`).then(r => r.json());
+  if (!data.rows || !data.rows.length) { wrap.innerHTML = '<div class="no-data">No data for this sector.</div>'; return; }
+  const { rows, cols, matrix } = data;
+
+  function cellStyle(v) {
+    if (v === null) return "background:#f7f3ed;";
+    if (v > p.pvalue) return null;
+    if (v < 0.01)  return "background:#c8e6d4;color:#1a4d30;font-weight:500;";
+    if (v < 0.05)  return "background:#d8eedf;color:#2d6b48;";
+    if (v < 0.10)  return "background:#eaf5ee;color:#4a8a62;";
+    return "background:#f0f4f0;color:#6a8a72;";
+  }
+
+  let html = '<table class="hm-table"><thead><tr><th></th>';
+  cols.forEach(c => { html += `<th style="writing-mode:vertical-rl;transform:rotate(180deg);padding:4px 3px;font-size:9px;white-space:nowrap">${c}</th>`; });
+  html += '</tr></thead><tbody>';
+  rows.forEach((rowT, ri) => {
+    html += `<tr><th class="row-head">${rowT}</th>`;
+    cols.forEach((colT, ci) => {
+      if (rowT === colT) { html += `<td class="hm-cell diagonal">—</td>`; }
+      else if (matrix[ri][ci] === null) { html += `<td class="hm-cell hm-null"></td>`; }
+      else {
+        const v = matrix[ri][ci];
+        const label = v < 0.001 ? "<.001" : v.toFixed(3);
+        const style = cellStyle(v);
+        if (!style) {
+          html += `<td class="hm-cell above-threshold" title="${rowT}/${colT} p=${v.toFixed(4)} (above threshold)" data-t1="${rowT}" data-t2="${colT}">${label}</td>`;
+        } else {
+          html += `<td class="hm-cell" style="${style}" title="${rowT}/${colT} p=${v.toFixed(4)}" data-t1="${rowT}" data-t2="${colT}">${label}</td>`;
+        }
+      }
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+  wrap.querySelectorAll("td.hm-cell[data-t1]").forEach(td => {
+    td.addEventListener("click", () => loadPair(td.dataset.t1, td.dataset.t2));
+  });
+}
+
+// ── Load pair ─────────────────────────────────────────────────────────────────
+async function loadPair(t1, t2) {
+  currentT1 = t1; currentT2 = t2;
+  document.getElementById("loading").style.display = "block";
+  hidePair();
+  const p = getParams();
+  const url = `/api/pair?window=${currentWindow}&t1=${encodeURIComponent(t1)}&t2=${encodeURIComponent(t2)}&entry_z=${p.entry_z}&pnl_target=${p.pnl_target}&pvalue=${p.pvalue}&hurst_max=${p.hurst_max}`;
+  const data = await fetch(url).then(r => r.json());
+  document.getElementById("loading").style.display = "none";
+  if (data.error) { console.warn(data.error); return; }
+
+  lastPairData = data; lastPairT1 = t1; lastPairT2 = t2;
+
+  renderHeader(t1, t2, data);
+  renderStats(data);
+  renderProposed(data.proposed_trade, t1, t2);
+
+  // Show sections BEFORE rendering charts to avoid 0-width squash
+  ["pair-header", "stats-row", "charts-section", "trade-section"].forEach(id => {
+    const el = document.getElementById(id);
+    el.style.display = id === "stats-row" ? "flex" : "block";
+    el.classList.remove("fade-in"); void el.offsetWidth; el.classList.add("fade-in");
+  });
+  if (data.proposed_trade) {
+    const pb = document.getElementById("proposed-box");
+    pb.style.display = "block"; pb.classList.remove("fade-in"); void pb.offsetWidth; pb.classList.add("fade-in");
+  }
+
+  renderCharts(t1, t2, data);
+  renderBlotter(data.blotter || []);
+
+  // Force Plotly resize after paint — fixes squashed charts on reload
+  [50, 600].forEach(delay => setTimeout(() => {
+    ["chart-master", "chart-beta", "chart-halflife"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el && el.data) Plotly.relayout(el, { autosize: true });
+    });
+  }, delay));
+
+  window.addEventListener("resize", () => {
+    ["chart-master", "chart-beta", "chart-halflife"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el && el.data) Plotly.relayout(el, { autosize: true });
+    });
+  });
+
+  window.scrollTo({ top: document.getElementById("pair-header").offsetTop - 24, behavior: "smooth" });
+}
+
+// ── Header ────────────────────────────────────────────────────────────────────
+function renderHeader(t1, t2, data) {
+  document.getElementById("pair-title").textContent = `${t1}  ·  ${t2}`;
+  document.getElementById("pair-subtitle").textContent = `${currentSector}`;
+  const badge = document.getElementById("signal-badge");
+  const pt = data.proposed_trade;
+  if (!pt) { badge.textContent = "No Signal"; badge.className = "badge badge-none"; }
+  else if (pt.direction === "LONG") { badge.innerHTML = "▲&nbsp;Long Signal"; badge.className = "badge badge-long"; }
+  else { badge.innerHTML = "▼&nbsp;Short Signal"; badge.className = "badge badge-short"; }
+}
+
+// ── Stats ─────────────────────────────────────────────────────────────────────
+function renderStats(data) {
+  const exits = (data.blotter || []).filter(r => r.RowType === "Exit");
+  const totalPnl = exits.reduce((s, t) => s + (t.Profit || 0), 0);
+  const wins = exits.filter(t => t.Profit > 0).length;
+  const wr = exits.length ? (wins / exits.length * 100).toFixed(0) + "%" : "—";
+  const lastZ    = data.zscore.findLast(v => v != null);
+  const lastPv   = data.pvalue.findLast(v => v != null);
+  const lastHl   = data.half_life.findLast(v => v != null);
+  const lastBeta = data.beta.findLast(v => v != null);
+  const lastCV   = data.beta_cv ? data.beta_cv.findLast(v => v != null) : null;
+  const p = getParams();
+
+  const pnlEl = document.getElementById("stat-pnl");
+  pnlEl.textContent = totalPnl.toFixed(4);
+  pnlEl.className = "value" + (totalPnl > 0 ? " pos" : totalPnl < 0 ? " neg" : "");
+  document.getElementById("stat-wr").textContent = wr;
+  document.getElementById("stat-n").textContent = exits.length;
+  const pvEl = document.getElementById("stat-pv");
+  pvEl.textContent = lastPv != null ? lastPv.toFixed(4) : "—";
+  pvEl.className = "value" + (lastPv != null && lastPv < p.pvalue ? " gold" : "");
+  const zEl = document.getElementById("stat-z");
+  zEl.textContent = lastZ != null ? lastZ.toFixed(2) : "—";
+  zEl.className = "value" + (lastZ != null && Math.abs(lastZ) > p.entry_z ? (lastZ > 0 ? " neg" : " pos") : "");
+  document.getElementById("stat-hl").textContent = lastHl != null ? lastHl.toFixed(1) : "—";
+  document.getElementById("stat-beta").textContent = lastBeta != null ? lastBeta.toFixed(3) : "—";
+  const cvEl = document.getElementById("stat-cv");
+  cvEl.textContent = lastCV != null ? lastCV.toFixed(3) : "—";
+  cvEl.className = "value" + (lastCV != null ? (lastCV < 0.5 ? " pos" : " neg") : "");
+}
+
+// ── Proposed trade ────────────────────────────────────────────────────────────
+function renderProposed(pt, t1, t2) {
+  const box = document.getElementById("proposed-box");
+  if (!pt) { box.style.display = "none"; return; }
+  const beta = pt.beta.toFixed(3);
+  const txt = document.getElementById("proposed-text");
+  if (pt.direction === "LONG") {
+    txt.innerHTML =
+      `<strong>Long</strong> <strong>${t1}</strong> / <strong>Short</strong> <strong>${t2}</strong> (beta-adjusted). `+
+      `Buy ${t1} equity and sell short ${t2} in a <em>${beta}:1</em> ratio. `+
+      `Profit when the log-price spread reverts upward — i.e. <em>${t1} outperforms ${t2}</em>.`;
+  } else {
+    txt.innerHTML =
+      `<strong>Short</strong> <strong>${t1}</strong> / <strong>Long</strong> <strong>${t2}</strong> (beta-adjusted). `+
+      `Sell short ${t1} equity and buy ${t2} in a <em>${beta}:1</em> ratio. `+
+      `Profit when the log-price spread reverts downward — i.e. <em>${t2} outperforms ${t1}</em>.`;
+  }
+  box.style.display = "block";
+}
+
+// ── Charts ────────────────────────────────────────────────────────────────────
+function renderCharts(t1, t2, data) {
+  const d = data.dates, cfg = { responsive: true, displayModeBar: false, scrollZoom: false };
+  const sm = { l: 64, r: 16, t: 44, b: 40, autoexpand: false };
+  const shading = data.shading || { cointegrated: [], stable_beta: [] };
+  const markers = data.markers || [];
+  const p = getParams();
+
+  const cointShapes  = shadingShapes(d, shading.cointegrated, "rgba(45,122,79,0.07)");
+  const stableShapes = shadingShapes(d, shading.stable_beta,  "rgba(45,122,79,0.18)");
+  const allShapes    = [...cointShapes, ...stableShapes];
+
+  // Assign each shading shape to all 5 subplot axes
+  const subplotShapes = [];
+  allShapes.forEach(s => {
+    ["x", "x2", "x3", "x4", "x5"].forEach((xref, i) => {
+      const yref = ["y", "y2", "y3", "y4", "y5"][i];
+      subplotShapes.push({ ...s, xref, yref: yref + " domain" });
+    });
+  });
+
+  // ── Economic spread (log_p1 - rolling_beta * log_p2) ─────────────────────
+  const econSpread = data.price1.map((p1v, i) => {
+    const p2v = data.price2[i], b = data.beta[i];
+    return (p1v != null && p2v != null && b != null) ? p1v - b * p2v : null;
+  });
+
+  // ── Date → index map ──────────────────────────────────────────────────────
+  const dateIdx = {};
+  d.forEach((dt, i) => { dateIdx[dt] = i; });
+
+  const entryByLabel = {};
+  (data.blotter || []).forEach(r => {
+    if (r.RowType === "Entry") entryByLabel[r.TradeLabel] = r;
+  });
+
+  const entryMkrs = markers.filter(m => m.type === "entry");
+  const exitMkrs  = markers.filter(m => m.type === "exit");
+
+  // ── Build all traces ──────────────────────────────────────────────────────
+  const traces = [];
+
+  // Panel 1 — Log Prices (y / x)
+  traces.push({ ...mkLine(d, data.price1, t1, GOLD, "solid", 2), xaxis: "x", yaxis: "y" });
+  traces.push({ ...mkLine(d, data.price2, t2, BLUE, "solid", 2), xaxis: "x", yaxis: "y" });
+
+  // Panel 2 — Economic Spread (y2 / x2)
+  traces.push({ ...mkLine(d, econSpread, "Spread", AMBER, "solid", 2), xaxis: "x2", yaxis: "y2" });
+
+  // Dotted locked-beta trade paths on spread panel
+  (data.blotter || []).filter(r => r.RowType === "Exit").forEach(tr => {
+    const entryRow = entryByLabel[tr.TradeLabel];
+    if (!entryRow) return;
+    const i0 = dateIdx[entryRow.Date], i1 = dateIdx[tr.Date];
+    if (i0 === undefined || i1 === undefined) return;
+    const color = tr.Dir === "LONG" ? GREEN2 : RED2;
+    const lockedBeta = tr.TradeBeta;
+    const pathX = [], pathY = [];
+    for (let i = i0; i <= i1 && i < d.length; i++) {
+      const p1v = data.price1[i], p2v = data.price2[i];
+      if (p1v == null || p2v == null) continue;
+      pathY.push(p1v - lockedBeta * p2v);
+      pathX.push(d[i]);
+    }
+    if (pathX.length > 1) {
+      traces.push({ x: pathX, y: pathY, xaxis: "x2", yaxis: "y2",
+        mode: "lines", line: { color, width: 1.5, dash: "dot" },
+        showlegend: false, hoverinfo: "skip" });
+    }
+  });
+
+  // Entry/exit markers on spread panel
+  if (entryMkrs.length) traces.push({
+    x: entryMkrs.map(m => m.date), y: entryMkrs.map(m => m.spread),
+    xaxis: "x2", yaxis: "y2", mode: "markers", name: "Entry",
+    marker: { symbol: entryMkrs.map(m => m.dir === "LONG" ? "triangle-up" : "triangle-down"),
+              color: entryMkrs.map(m => m.dir === "LONG" ? GREEN : RED),
+              size: 10, line: { color: "white", width: 1.5 } },
+  });
+  if (exitMkrs.length) traces.push({
+    x: exitMkrs.map(m => m.date), y: exitMkrs.map(m => m.spread),
+    xaxis: "x2", yaxis: "y2", mode: "markers", name: "Exit",
+    marker: { symbol: "circle", size: 7,
+              color: exitMkrs.map(m => m.dir === "LONG" ? GREEN : RED),
+              line: { color: "white", width: 1.5 } },
+  });
+
+  // Panel 3 — Z-Score (y3 / x3)
+  const ez = p.entry_z;
+  traces.push({ ...mkLine(d, data.zscore, "Z-Score", GOLD, "solid", 2), xaxis: "x3", yaxis: "y3" });
+  [ez, -ez, ez+1, -(ez+1)].forEach((yv, i) => {
+    traces.push({ x: [d[0], d.at(-1)], y: [yv, yv], xaxis: "x3", yaxis: "y3",
+      mode: "lines", line: { color: i < 2 ? MUTED : GRID2, width: 1, dash: "dot" },
+      showlegend: false, hoverinfo: "skip" });
+  });
+  traces.push({ x: [d[0], d.at(-1)], y: [0, 0], xaxis: "x3", yaxis: "y3",
+    mode: "lines", line: { color: GRID2, width: 1 }, showlegend: false, hoverinfo: "skip" });
+
+  if (entryMkrs.length) traces.push({
+    x: entryMkrs.map(m => m.date), y: entryMkrs.map(m => m.z),
+    xaxis: "x3", yaxis: "y3", mode: "markers", name: "Entry",
+    marker: { symbol: entryMkrs.map(m => m.dir === "LONG" ? "triangle-up" : "triangle-down"),
+              color: entryMkrs.map(m => m.dir === "LONG" ? GREEN : RED),
+              size: 9, line: { color: "white", width: 1.5 } }, showlegend: false,
+  });
+  if (exitMkrs.length) traces.push({
+    x: exitMkrs.map(m => m.date), y: exitMkrs.map(m => m.z),
+    xaxis: "x3", yaxis: "y3", mode: "markers", name: "Exit",
+    marker: { symbol: "circle", size: 7,
+              color: exitMkrs.map(m => m.dir === "LONG" ? GREEN : RED),
+              line: { color: "white", width: 1.5 } }, showlegend: false,
+  });
+
+  // Panel 4 — P-Value (y4 / x4)
+  traces.push({ ...mkLine(d, data.pvalue, "P-Value", BLUE, "solid", 1.8), xaxis: "x4", yaxis: "y4" });
+  traces.push({
+    x: [d[0], d.at(-1)], y: [p.pvalue, p.pvalue],
+    xaxis: "x4", yaxis: "y4",
+    mode: "lines", name: "Threshold",
+    line: { color: RED2, width: 1, dash: "dot" },
+    showlegend: false, hoverinfo: "skip",
+  });
+
+  // Panel 5 — PnL (y5 / x5)
+  const lastP = data.pnl.findLast(v => v != null) ?? 0;
+  traces.push({
+    x: d, y: data.pnl, xaxis: "x5", yaxis: "y5",
+    type: "scatter", mode: "lines", name: "Cum. PnL",
+    fill: "tozeroy",
+    fillcolor: lastP >= 0 ? "rgba(45,122,79,0.10)" : "rgba(158,58,50,0.10)",
+    line: { color: lastP >= 0 ? GREEN : RED, width: 2 },
+    showlegend: false,
+  });
+
+  // ── Master subplot layout — 5 panels, 1100px ──────────────────────────────
+  const masterLayout = {
+    paper_bgcolor: SURFACE, plot_bgcolor: SURFACE,
+    height: 1100,
+    margin: { l: 64, r: 32, t: 44, b: 40, autoexpand: false },
+    showlegend: true,
+    legend: { orientation: "h", x: 0.01, xanchor: "left", y: 1.0, yanchor: "bottom",
+              bgcolor: "rgba(255,255,255,0.85)", bordercolor: GRID2, borderwidth: 1,
+              font: { color: TEXT, size: 10, family: "DM Mono, monospace" } },
+    hovermode: "x unified",
+    hoverlabel: { bgcolor: "#fff8f0", bordercolor: GRID2,
+                  font: { color: TEXT, size: 11, family: "DM Mono, monospace" } },
+    shapes: subplotShapes,
+
+    xaxis:  { gridcolor: GRID, zerolinecolor: GRID2, color: TEXT2, tickfont: { size: 10, color: TEXT2 }, linecolor: GRID2, showticklabels: false, anchor: "y",  domain: [0, 1] },
+    xaxis2: { gridcolor: GRID, zerolinecolor: GRID2, color: TEXT2, tickfont: { size: 10, color: TEXT2 }, linecolor: GRID2, showticklabels: false, anchor: "y2", domain: [0, 1], matches: "x" },
+    xaxis3: { gridcolor: GRID, zerolinecolor: GRID2, color: TEXT2, tickfont: { size: 10, color: TEXT2 }, linecolor: GRID2, showticklabels: false, anchor: "y3", domain: [0, 1], matches: "x" },
+    xaxis4: { gridcolor: GRID, zerolinecolor: GRID2, color: TEXT2, tickfont: { size: 10, color: TEXT2 }, linecolor: GRID2, showticklabels: false, anchor: "y4", domain: [0, 1], matches: "x" },
+    xaxis5: { gridcolor: GRID, zerolinecolor: GRID2, color: TEXT2, tickfont: { size: 10, color: TEXT2 }, linecolor: GRID2, showticklabels: true,  anchor: "y5", domain: [0, 1], matches: "x" },
+
+    yaxis:  { domain: [0.84, 1.00], automargin: false, gridcolor: GRID, zerolinecolor: GRID2, color: TEXT2, tickfont: { size: 10, color: TEXT2 }, title: { text: "Log Price",    font: { size: 10, color: TEXT2 } } },
+    yaxis2: { domain: [0.63, 0.81], automargin: false, gridcolor: GRID, zerolinecolor: GRID2, color: TEXT2, tickfont: { size: 10, color: TEXT2 }, title: { text: "Log Spread",   font: { size: 10, color: TEXT2 } } },
+    yaxis3: { domain: [0.42, 0.60], automargin: false, gridcolor: GRID, zerolinecolor: GRID2, color: TEXT2, tickfont: { size: 10, color: TEXT2 }, title: { text: "Z-Score",      font: { size: 10, color: TEXT2 } } },
+    yaxis4: { domain: [0.21, 0.39], automargin: false, gridcolor: GRID, zerolinecolor: GRID2, color: TEXT2, tickfont: { size: 10, color: TEXT2 }, title: { text: "P-Value",      font: { size: 10, color: TEXT2 } }, range: [0, 1] },
+    yaxis5: { domain: [0.00, 0.18], automargin: false, gridcolor: GRID, zerolinecolor: GRID2, color: TEXT2, tickfont: { size: 10, color: TEXT2 }, title: { text: "PnL",          font: { size: 10, color: TEXT2 } } },
+  };
+
+  Plotly.react("chart-master", traces, masterLayout, cfg);
+
+  // ── Diagnostics (2-col: beta + half-life) ─────────────────────────────────
+  const diagCfg = { ...cfg };
+  const diagAxisX = { gridcolor: GRID, zerolinecolor: GRID2, color: TEXT2, tickfont: { size: 10, color: TEXT2 }, type: "date" };
+  const diagAxisY = { gridcolor: GRID, zerolinecolor: GRID2, color: TEXT2, tickfont: { size: 10, color: TEXT2 }, type: "linear" };
+
+  Plotly.react("chart-beta",
+    [
+      mkLine(d, data.beta,  "Beta",  AMBER),
+      { ...mkLine(d, data.hurst, "Hurst", BLUE, "dash", 1.2), yaxis: "y2" },
+      { x: [d[0], d.at(-1)], y: [0.5, 0.5], xaxis: "x", yaxis: "y2",
+        mode: "lines", line: { color: RED2, width: 1, dash: "dot" },
+        showlegend: false, hoverinfo: "skip" },
+    ],
+    mkLayout({
+      title:  { text: "Rolling Beta & Hurst", font: { color: TEXT, size: 12 } },
+      height: 200, margin: sm, shapes: allShapes,
+      xaxis:  diagAxisX,
+      yaxis:  { ...diagAxisY, title: { text: "Beta",  font: { size: 9, color: AMBER } } },
+      yaxis2: { ...diagAxisY,
+                title:      { text: "Hurst", font: { size: 9, color: BLUE } },
+                overlaying: "y",
+                side:       "right",
+                range:      [0, 1],
+                tickvals:   [0, 0.25, 0.5, 0.75, 1.0],
+                showgrid:   false,
+              },
+    }), diagCfg);
+
+  const hlClamped = (data.half_life || []).map(v => v == null ? null : Math.min(120, v));
+  Plotly.react("chart-halflife",
+    [mkLine(d, hlClamped, "Half-Life", GREEN)],
+    mkLayout({ title: { text: "Half-Life (days)", font: { color: TEXT, size: 12 } },
+               height: 200, margin: sm, xaxis: diagAxisX,
+               yaxis: { ...diagAxisY, range: [0, 120] },
+               shapes: allShapes, showlegend: false }), diagCfg);
+}
+
+// ── Blotter ───────────────────────────────────────────────────────────────────
+function renderBlotter(blotter) {
+  const tbody = document.getElementById("trade-body");
+  if (!blotter.length) {
+    tbody.innerHTML = `<tr><td colspan="15" class="no-data">No trades triggered with current parameters</td></tr>`;
+    return;
+  }
+
+  let lastLabel = null;
+  let html = "";
+  blotter.forEach(row => {
+    const isEntry = row.RowType === "Entry";
+    const isNewTrade = row.TradeLabel !== lastLabel;
+    lastLabel = row.TradeLabel;
+
+    const isOpen  = !isEntry && row.IsOpen === true;
+    const rowClass = isEntry ? "row-entry" : isOpen ? "row-open" : "row-exit";
+    const divClass = isNewTrade && html !== "" ? " trade-divider" : "";
+    const dirClass = row.Dir === "LONG" ? "dir-long" : "dir-short";
+
+    const daysCell  = isEntry ? `<td style="color:var(--muted)">—</td>` : `<td style="color:var(--muted)">${row.DaysHeld}d</td>`;
+    const betaCell  = `<td style="color:var(--ink3)">${row.TradeBeta != null ? row.TradeBeta : "—"}</td>`;
+    const rollBeta  = `<td style="color:var(--muted)">${row.RollingBeta != null ? row.RollingBeta : "—"}</td>`;
+
+    let spreadPnlCell = `<td>—</td>`;
+    let profitCell    = `<td>—</td>`;
+    if (!isEntry) {
+      const spSign = row.SpreadPnL >= 0 ? "+" : "";
+      spreadPnlCell = `<td class="${isOpen ? "open-pnl" : row.SpreadPnL >= 0 ? "profit-pos" : "profit-neg"}">${spSign}${row.SpreadPnL}</td>`;
+      const pSign = row.Profit > 0 ? "▲ " : row.Profit < 0 ? "▼ " : "";
+      profitCell = isOpen
+        ? `<td class="open-pnl">${pSign}${row.Profit} <span class="open-badge">MTM</span></td>`
+        : `<td class="${row.Profit > 0 ? "profit-pos" : row.Profit < 0 ? "profit-neg" : ""}">${pSign}${row.Profit}</td>`;
+    }
+
+    html += `<tr class="${rowClass}${divClass}">
+      <td style="color:var(--gold);font-weight:500">${row.TradeLabel}</td>
+      <td style="color:var(--ink4);font-style:${isEntry?"italic":"normal"}">${isOpen ? "Open" : row.RowType}</td>
+      <td>${row.Date}</td>
+      ${daysCell}
+      <td class="${dirClass}">${row.Dir}</td>
+      <td>${row.T1}</td>
+      <td>${row.T2}</td>
+      <td>${row.T1_Px}</td>
+      <td>${row.T2_Px}</td>
+      <td>${row.Spread}</td>
+      <td>${row.Z}</td>
+      ${betaCell}
+      ${rollBeta}
+      ${spreadPnlCell}
+      ${profitCell}
+    </tr>`;
+  });
+
+  tbody.innerHTML = html;
+}
+
+// ── Export pair data to CSV ───────────────────────────────────────────────────
+let lastPairData = null, lastPairT1 = null, lastPairT2 = null;
+
+function exportPairCSV() {
+  if (!lastPairData) return;
+  const data = lastPairData, t1 = lastPairT1, t2 = lastPairT2;
+  const p = getParams();
+  const rows = [];
+
+  rows.push(["# Equity Cointegration — Pair Export"]);
+  rows.push(["# Ticker 1", t1]);
+  rows.push(["# Ticker 2", t2]);
+  rows.push(["# Window", currentWindow]);
+  rows.push(["# P-Value Threshold", p.pvalue]);
+  rows.push(["# Entry Z", p.entry_z]);
+  rows.push(["# PnL Target", p.pnl_target]);
+  rows.push(["# Hurst Max", p.hurst_max]);
+  rows.push(["# Exported", new Date().toISOString()]);
+  rows.push([]);
+
+  rows.push([
+    "Date",
+    `Log P1 (${t1})`,
+    `Log P2 (${t2})`,
+    "Beta",
+    "Log Spread",
+    "Z-Score",
+    "Std(Spread)",
+    "P-Value",
+    "Half-Life",
+    "Beta CV",
+    "Cointegrated?",
+    "Stable?",
+    "Can Trade?",
+    "Cum PnL",
+  ]);
+
+  const shading = data.shading || { cointegrated: [], stable_beta: [] };
+
+  data.dates.forEach((dt, i) => {
+    const coint    = shading.cointegrated[i] ? "YES" : "NO";
+    const stable   = shading.stable_beta[i]  ? "YES" : "NO";
+    const canTrade = shading.stable_beta[i]  ? "YES" : "NO";
+
+    rows.push([
+      dt,
+      data.price1[i]    != null ? data.price1[i].toFixed(4)    : "",
+      data.price2[i]    != null ? data.price2[i].toFixed(4)    : "",
+      data.beta[i]      != null ? data.beta[i].toFixed(6)      : "",
+      data.spread[i]    != null ? data.spread[i].toFixed(4)    : "",
+      data.zscore[i]    != null ? data.zscore[i].toFixed(6)    : "",
+      data.std_spread && data.std_spread[i] != null ? data.std_spread[i].toFixed(6) : "",
+      data.pvalue[i]    != null ? data.pvalue[i].toFixed(8)    : "",
+      data.half_life[i] != null ? data.half_life[i].toFixed(4) : "",
+      data.beta_cv && data.beta_cv[i] != null ? data.beta_cv[i].toFixed(6) : "",
+      coint,
+      stable,
+      canTrade,
+      data.pnl[i]       != null ? data.pnl[i].toFixed(6)       : "",
+    ]);
+  });
+
+  rows.push([]);
+  rows.push(["# TRADE BLOTTER"]);
+  rows.push([
+    "Trade", "Type", "Date", "Days Held", "Dir",
+    "T1", "T2", "T1 Log Px", "T2 Log Px", "Spread", "Z",
+    "Trade Beta", "Rolling Beta", "Spread PnL", "Total PnL",
+  ]);
+  (data.blotter || []).forEach(r => {
+    rows.push([
+      r.TradeLabel, r.RowType, r.Date,
+      r.DaysHeld != null ? r.DaysHeld : "",
+      r.Dir, r.T1, r.T2,
+      r.T1_Px, r.T2_Px, r.Spread, r.Z,
+      r.TradeBeta   != null ? r.TradeBeta   : "",
+      r.RollingBeta != null ? r.RollingBeta : "",
+      r.SpreadPnL   != null ? r.SpreadPnL   : "",
+      r.Profit      != null ? r.Profit      : "",
+    ]);
+  });
+
+  const csv = rows.map(r =>
+    r.map(v => {
+      const s = String(v);
+      return s.includes(",") || s.includes('"') || s.includes("\n")
+        ? `"${s.replace(/"/g, '""')}"` : s;
+    }).join(",")
+  ).join("\n");
+
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href     = url;
+  a.download = `EQ_${t1}_${t2}_w${currentWindow}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+
+  const btn = document.getElementById("export-csv-btn");
+  btn.textContent = "&#10003; Exported";
+  btn.classList.add("done");
+  setTimeout(() => { btn.textContent = "&#8595; Export CSV"; btn.classList.remove("done"); }, 2000);
+}
+
+// ── Hide pair ─────────────────────────────────────────────────────────────────
+function hidePair() {
+  ["pair-header", "stats-row", "charts-section", "trade-section", "proposed-box"]
+    .forEach(id => document.getElementById(id).style.display = "none");
+}
+
+// ── Copy blotter to clipboard (TSV for Excel paste) ───────────────────────────
+function copyBlotterToClipboard() {
+  const table = document.querySelector("table.trade-table");
+  if (!table) return;
+  const rows = [...table.querySelectorAll("tr")];
+  const tsv = rows.map(row =>
+    [...row.querySelectorAll("th, td")].map(cell => cell.textContent.trim()).join("\t")
+  ).join("\n");
+  navigator.clipboard.writeText(tsv).then(() => {
+    const btn = document.getElementById("copy-blotter-btn");
+    btn.textContent = "✓ Copied!";
+    btn.classList.add("copied");
+    setTimeout(() => { btn.textContent = "⬇ Copy to Clipboard"; btn.classList.remove("copied"); }, 2000);
+  });
+}
+</script>
+</body>
+</html>
