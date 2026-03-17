@@ -32,11 +32,13 @@ import yfinance as yf
 # ── defaults ──────────────────────────────────────────────────────────────────
 DEFAULT_TICKERS_CSV    = "tickers.csv"
 DEFAULT_CUSTOM_BASKETS = "custom_baskets.csv"
+DEFAULT_SECTORS_SEED   = "sectors_seed.csv"
 DEFAULT_START          = "2021-01-01"
 DEFAULT_OUTPUT_DIR     = "data"
 MIN_TRADING_DAYS       = 252       # tickers with fewer rows are dropped
 MAX_MISSING_PCT        = 0.10      # drop tickers with >10% missing prices
 SECTOR_RETRY_DELAY     = 0.25      # seconds between yfinance info calls
+UNKNOWN_THRESHOLD      = 0.50      # fall back to seed if >50% of GICS results are Unknown
 
 
 def load_tickers(path: str) -> list[str]:
@@ -55,6 +57,17 @@ def load_tickers(path: str) -> list[str]:
     tickers = [t for t in tickers if t]
     print(f"[*] Loaded {len(tickers)} tickers from {path}")
     return tickers
+
+
+def load_sectors_seed(path: str) -> dict[str, str]:
+    """Load sectors_seed.csv as {ticker: sector}. Returns {} if file absent."""
+    p = Path(path)
+    if not p.exists():
+        return {}
+    df = pd.read_csv(p, header=0)
+    seed = dict(zip(df["Ticker"].str.strip().str.upper(), df["Sector"].str.strip()))
+    print(f"[*] Loaded {len(seed)} tickers from seed file {path}")
+    return seed
 
 
 def load_custom_baskets(path: str) -> dict[str, str]:
@@ -187,6 +200,7 @@ def main():
     parser = argparse.ArgumentParser(description="Download equity prices for cointegration dashboard")
     parser.add_argument("--tickers", default=DEFAULT_TICKERS_CSV,    help="Path to tickers CSV")
     parser.add_argument("--baskets", default=DEFAULT_CUSTOM_BASKETS, help="Path to custom_baskets.csv")
+    parser.add_argument("--seed",    default=DEFAULT_SECTORS_SEED,   help="Path to sectors_seed.csv fallback")
     parser.add_argument("--start",   default=DEFAULT_START,          help="Start date YYYY-MM-DD")
     parser.add_argument("--output",  default=DEFAULT_OUTPUT_DIR,     help="Output directory")
     args = parser.parse_args()
@@ -217,6 +231,21 @@ def main():
     # 6. Fetch GICS sectors — skip tickers already assigned a custom sector
     gics_tickers = [t for t in valid_tickers if t not in custom_map]
     sector_map = fetch_sectors(gics_tickers) if gics_tickers else {}
+
+    # 6b. Fall back to sectors_seed.csv if GICS fetch returned mostly Unknown
+    if gics_tickers:
+        n_unknown = sum(1 for s in sector_map.values() if s == "Unknown")
+        unknown_pct = n_unknown / len(gics_tickers)
+        if unknown_pct > UNKNOWN_THRESHOLD:
+            print(f"[!] GICS fetch returned {n_unknown}/{len(gics_tickers)} Unknown "
+                  f"({unknown_pct:.0%}) — falling back to sectors_seed.csv")
+            seed = load_sectors_seed(args.seed)
+            if seed:
+                sector_map = {t: seed.get(t, "Unknown") for t in gics_tickers}
+                n_resolved = sum(1 for s in sector_map.values() if s != "Unknown")
+                print(f"[✓] Seed resolved {n_resolved}/{len(gics_tickers)} tickers")
+            else:
+                print("[!] sectors_seed.csv not found — keeping Unknown results")
 
     # 7. Custom sectors override GICS for any overlapping tickers
     overrides = {t: custom_map[t] for t in valid_tickers if t in custom_map}
