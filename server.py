@@ -10,6 +10,7 @@ GET  /api/pairs?sector=&window=                 -> [["T1","T2"], ...]
 GET  /api/heatmap?sector=&window=&pvalue=&asof= -> {rows, cols, matrix}
 GET  /api/pair?window=&t1=&t2=&entry_z=&pnl_target=&hurst_max=&pvalue=
                                                 -> full time-series + trades + blotter
+GET  /api/last_updated                          -> {"last_updated": "YYYY-MM-DD"}
 
 Run:  python server.py
 """
@@ -471,6 +472,22 @@ def api_pair():
 def api_refresh():
     load_window_df.cache_clear()
     return jsonify({"status": "cache cleared"})
+
+
+@app.route("/api/last_updated")
+def api_last_updated():
+    try:
+        latest = None
+        for f in WINDOWS_DIR.glob("window_*.parquet"):
+            df = pd.read_parquet(f, columns=["date"])
+            d = pd.to_datetime(df["date"]).max()
+            if latest is None or d > latest:
+                latest = d
+        if latest is None:
+            return jsonify({"last_updated": None})
+        return jsonify({"last_updated": latest.strftime("%Y-%m-%d")})
+    except Exception as e:
+        return jsonify({"last_updated": None, "error": str(e)})
 
 
 if __name__ == "__main__":

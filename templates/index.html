@@ -207,6 +207,7 @@ table.trade-table tr.trade-divider td{border-top:1px solid var(--rule);padding-t
       </div>
     </div>
     <div class="masthead-date" id="clock">—</div>
+    <div class="masthead-date">Data as of: <span id="data-as-of" style="color:var(--ink3)">—</span></div>
     <div class="masthead-rule"></div>
   </div>
 </div>
@@ -465,10 +466,14 @@ function shadingShapes(dates, flags, color) {
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", async () => {
-  const [sectors, windows] = await Promise.all([
+  const [sectors, windows, lastUpdated] = await Promise.all([
     fetch("/api/sectors").then(r => r.json()),
     fetch("/api/windows").then(r => r.json()),
+    fetch("/api/last_updated").then(r => r.json()),
   ]);
+  if (lastUpdated.last_updated) {
+    document.getElementById("data-as-of").textContent = lastUpdated.last_updated;
+  }
   const ss = document.getElementById("sectorSelect");
   sectors.forEach(s => { const o = document.createElement("option"); o.value = o.textContent = s; ss.appendChild(o); });
   const ws = document.getElementById("windowSelect");
