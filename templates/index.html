@@ -381,6 +381,8 @@ table.trade-table tr.trade-divider td{border-top:1px solid var(--rule);padding-t
       <th>Date</th>
       <th>Days Held</th>
       <th>Dir</th>
+      <th>T1 Size</th>
+      <th>T2 Size</th>
       <th>T1</th>
       <th>T2</th>
       <th>T1 Log Px</th>
@@ -624,7 +626,7 @@ function renderStats(data) {
   const p = getParams();
 
   const pnlEl = document.getElementById("stat-pnl");
-  pnlEl.textContent = "$" + Math.round(totalPnl * 1e6).toLocaleString();
+  pnlEl.textContent = "$" + Math.round(totalPnl * 1000).toLocaleString();
   pnlEl.className = "value" + (totalPnl > 0 ? " pos" : totalPnl < 0 ? " neg" : "");
   document.getElementById("stat-wr").textContent = wr;
   document.getElementById("stat-n").textContent = exits.length;
@@ -646,17 +648,20 @@ function renderProposed(pt, t1, t2) {
   const box = document.getElementById("proposed-box");
   if (!pt) { box.style.display = "none"; return; }
   const beta = pt.beta.toFixed(3);
+  const t2Notional = Math.round(1000 * pt.beta).toLocaleString();
   const txt = document.getElementById("proposed-text");
   if (pt.direction === "LONG") {
     txt.innerHTML =
       `<strong>Long</strong> <strong>${t1}</strong> / <strong>Short</strong> <strong>${t2}</strong> (beta-adjusted). `+
       `Buy ${t1} equity and sell short ${t2} in a <em>${beta}:1</em> ratio. `+
-      `Profit when the log-price spread reverts upward — i.e. <em>${t1} outperforms ${t2}</em>.`;
+      `Profit when the log-price spread reverts upward — i.e. <em>${t1} outperforms ${t2}</em>. `+
+      `<em>Buy $1,000 of ${t1} and sell $${t2Notional} of ${t2} (beta-weighted). Profit if the spread narrows back to its historical mean.</em>`;
   } else {
     txt.innerHTML =
       `<strong>Short</strong> <strong>${t1}</strong> / <strong>Long</strong> <strong>${t2}</strong> (beta-adjusted). `+
       `Sell short ${t1} equity and buy ${t2} in a <em>${beta}:1</em> ratio. `+
-      `Profit when the log-price spread reverts downward — i.e. <em>${t2} outperforms ${t1}</em>.`;
+      `Profit when the log-price spread reverts downward — i.e. <em>${t2} outperforms ${t1}</em>. `+
+      `<em>Sell $1,000 of ${t1} and buy $${t2Notional} of ${t2} (beta-weighted). Profit if the spread narrows back to its historical mean.</em>`;
   }
   box.style.display = "block";
 }
@@ -785,7 +790,7 @@ function renderCharts(t1, t2, data) {
   });
 
   // Panel 5 — PnL (y5 / x5)
-  const scaledPnl = data.pnl.map(v => v != null ? v * 1e6 : null);
+  const scaledPnl = data.pnl.map(v => v != null ? v * 1000 : null);
   const lastP = scaledPnl.findLast(v => v != null) ?? 0;
   traces.push({
     x: d, y: scaledPnl, xaxis: "x5", yaxis: "y5",
@@ -866,7 +871,7 @@ function renderCharts(t1, t2, data) {
 function renderBlotter(blotter) {
   const tbody = document.getElementById("trade-body");
   if (!blotter.length) {
-    tbody.innerHTML = `<tr><td colspan="15" class="no-data">No trades triggered with current parameters</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="17" class="no-data">No trades triggered with current parameters</td></tr>`;
     return;
   }
 
@@ -886,14 +891,19 @@ function renderBlotter(blotter) {
     const betaCell  = `<td style="color:var(--ink3)">${row.TradeBeta != null ? row.TradeBeta : "—"}</td>`;
     const rollBeta  = `<td style="color:var(--muted)">${row.RollingBeta != null ? row.RollingBeta : "—"}</td>`;
 
+    const t1SizeCell = `<td style="color:var(--ink3)">$1,000</td>`;
+    const t2SizeCell = row.TradeBeta != null
+      ? `<td style="color:var(--ink3)">$${Math.round(1000 * row.TradeBeta).toLocaleString()}</td>`
+      : `<td style="color:var(--muted)">—</td>`;
+
     let spreadPnlCell = `<td>—</td>`;
     let profitCell    = `<td>—</td>`;
     if (!isEntry) {
-      const spScaled = row.SpreadPnL * 1e6;
+      const spScaled = row.SpreadPnL * 1000;
       const spSign = spScaled >= 0 ? "+" : "";
       const spFmt = "$" + Math.abs(Math.round(spScaled)).toLocaleString();
       spreadPnlCell = `<td class="${isOpen ? "open-pnl" : spScaled >= 0 ? "profit-pos" : "profit-neg"}">${spSign}${spFmt}</td>`;
-      const pScaled = row.Profit * 1e6;
+      const pScaled = row.Profit * 1000;
       const pSign = pScaled > 0 ? "▲ " : pScaled < 0 ? "▼ " : "";
       const pFmt = "$" + Math.abs(Math.round(pScaled)).toLocaleString();
       profitCell = isOpen
@@ -907,6 +917,8 @@ function renderBlotter(blotter) {
       <td>${row.Date}</td>
       ${daysCell}
       <td class="${dirClass}">${row.Dir}</td>
+      ${t1SizeCell}
+      ${t2SizeCell}
       <td>${row.T1}</td>
       <td>${row.T2}</td>
       <td>${row.T1_Px}</td>
@@ -989,19 +1001,22 @@ function exportPairCSV() {
   rows.push(["# TRADE BLOTTER"]);
   rows.push([
     "Trade", "Type", "Date", "Days Held", "Dir",
-    "T1", "T2", "T1 Log Px", "T2 Log Px", "Spread", "Z",
+    "T1 Size ($)", "T2 Size ($)", "T1", "T2", "T1 Log Px", "T2 Log Px", "Spread", "Z",
     "Trade Beta", "Rolling Beta", "Spread PnL ($)", "Total PnL ($)",
   ]);
   (data.blotter || []).forEach(r => {
     rows.push([
       r.TradeLabel, r.RowType, r.Date,
       r.DaysHeld != null ? r.DaysHeld : "",
-      r.Dir, r.T1, r.T2,
+      r.Dir,
+      1000,
+      r.TradeBeta != null ? Math.round(1000 * r.TradeBeta) : "",
+      r.T1, r.T2,
       r.T1_Px, r.T2_Px, r.Spread, r.Z,
       r.TradeBeta   != null ? r.TradeBeta   : "",
       r.RollingBeta != null ? r.RollingBeta : "",
-      r.SpreadPnL   != null ? Math.round(r.SpreadPnL * 1e6) : "",
-      r.Profit      != null ? Math.round(r.Profit * 1e6)   : "",
+      r.SpreadPnL   != null ? Math.round(r.SpreadPnL * 1000) : "",
+      r.Profit      != null ? Math.round(r.Profit * 1000)   : "",
     ]);
   });
 
