@@ -328,7 +328,7 @@ table.trade-table tr.trade-divider td{border-top:1px solid var(--rule);padding-t
 </div>
 
 <div id="stats-row" class="fade-in">
-  <div class="stat-card"><div class="label">Backtest PnL (bps equiv)</div><div id="stat-pnl" class="value">—</div></div>
+  <div class="stat-card"><div class="label">Backtest PnL ($)</div><div id="stat-pnl" class="value">—</div></div>
   <div class="stat-card"><div class="label">Win Rate</div><div id="stat-wr" class="value">—</div></div>
   <div class="stat-card"><div class="label">Total Trades</div><div id="stat-n" class="value">—</div></div>
   <div class="stat-card"><div class="label">Current P-Value</div><div id="stat-pv" class="value">—</div></div>
@@ -388,8 +388,8 @@ table.trade-table tr.trade-divider td{border-top:1px solid var(--rule);padding-t
       <th>Z</th>
       <th>Trade Beta</th>
       <th>Rolling Beta</th>
-      <th>Spread PnL (bps equiv)</th>
-      <th>Total PnL (bps equiv)</th>
+      <th>Spread PnL ($)</th>
+      <th>Total PnL ($)</th>
     </tr></thead>
     <tbody id="trade-body"></tbody>
   </table>
@@ -619,7 +619,7 @@ function renderStats(data) {
   const p = getParams();
 
   const pnlEl = document.getElementById("stat-pnl");
-  pnlEl.textContent = totalPnl.toFixed(4);
+  pnlEl.textContent = "$" + Math.round(totalPnl * 1e6).toLocaleString();
   pnlEl.className = "value" + (totalPnl > 0 ? " pos" : totalPnl < 0 ? " neg" : "");
   document.getElementById("stat-wr").textContent = wr;
   document.getElementById("stat-n").textContent = exits.length;
@@ -780,10 +780,11 @@ function renderCharts(t1, t2, data) {
   });
 
   // Panel 5 — PnL (y5 / x5)
-  const lastP = data.pnl.findLast(v => v != null) ?? 0;
+  const scaledPnl = data.pnl.map(v => v != null ? v * 1e6 : null);
+  const lastP = scaledPnl.findLast(v => v != null) ?? 0;
   traces.push({
-    x: d, y: data.pnl, xaxis: "x5", yaxis: "y5",
-    type: "scatter", mode: "lines", name: "Cum. PnL (bps equiv)",
+    x: d, y: scaledPnl, xaxis: "x5", yaxis: "y5",
+    type: "scatter", mode: "lines", name: "Cum. PnL ($)",
     fill: "tozeroy",
     fillcolor: lastP >= 0 ? "rgba(45,122,79,0.10)" : "rgba(158,58,50,0.10)",
     line: { color: lastP >= 0 ? GREEN : RED, width: 2 },
@@ -814,7 +815,7 @@ function renderCharts(t1, t2, data) {
     yaxis2: { domain: [0.63, 0.81], automargin: false, gridcolor: GRID, zerolinecolor: GRID2, color: TEXT2, tickfont: { size: 10, color: TEXT2 }, title: { text: "Log Spread",   font: { size: 10, color: TEXT2 } } },
     yaxis3: { domain: [0.42, 0.60], automargin: false, gridcolor: GRID, zerolinecolor: GRID2, color: TEXT2, tickfont: { size: 10, color: TEXT2 }, title: { text: "Z-Score",      font: { size: 10, color: TEXT2 } } },
     yaxis4: { domain: [0.21, 0.39], automargin: false, gridcolor: GRID, zerolinecolor: GRID2, color: TEXT2, tickfont: { size: 10, color: TEXT2 }, title: { text: "P-Value",      font: { size: 10, color: TEXT2 } }, range: [0, 1] },
-    yaxis5: { domain: [0.00, 0.18], automargin: false, gridcolor: GRID, zerolinecolor: GRID2, color: TEXT2, tickfont: { size: 10, color: TEXT2 }, title: { text: "PnL (bps equiv)", font: { size: 10, color: TEXT2 } } },
+    yaxis5: { domain: [0.00, 0.18], automargin: false, gridcolor: GRID, zerolinecolor: GRID2, color: TEXT2, tickfont: { size: 10, color: TEXT2 }, tickprefix: "$", separatethousands: true, title: { text: "PnL ($)", font: { size: 10, color: TEXT2 } } },
   };
 
   Plotly.react("chart-master", traces, masterLayout, cfg);
@@ -883,12 +884,16 @@ function renderBlotter(blotter) {
     let spreadPnlCell = `<td>—</td>`;
     let profitCell    = `<td>—</td>`;
     if (!isEntry) {
-      const spSign = row.SpreadPnL >= 0 ? "+" : "";
-      spreadPnlCell = `<td class="${isOpen ? "open-pnl" : row.SpreadPnL >= 0 ? "profit-pos" : "profit-neg"}">${spSign}${row.SpreadPnL}</td>`;
-      const pSign = row.Profit > 0 ? "▲ " : row.Profit < 0 ? "▼ " : "";
+      const spScaled = row.SpreadPnL * 1e6;
+      const spSign = spScaled >= 0 ? "+" : "";
+      const spFmt = "$" + Math.abs(Math.round(spScaled)).toLocaleString();
+      spreadPnlCell = `<td class="${isOpen ? "open-pnl" : spScaled >= 0 ? "profit-pos" : "profit-neg"}">${spSign}${spFmt}</td>`;
+      const pScaled = row.Profit * 1e6;
+      const pSign = pScaled > 0 ? "▲ " : pScaled < 0 ? "▼ " : "";
+      const pFmt = "$" + Math.abs(Math.round(pScaled)).toLocaleString();
       profitCell = isOpen
-        ? `<td class="open-pnl">${pSign}${row.Profit} <span class="open-badge">MTM</span></td>`
-        : `<td class="${row.Profit > 0 ? "profit-pos" : row.Profit < 0 ? "profit-neg" : ""}">${pSign}${row.Profit}</td>`;
+        ? `<td class="open-pnl">${pSign}${pFmt} <span class="open-badge">MTM</span></td>`
+        : `<td class="${pScaled > 0 ? "profit-pos" : pScaled < 0 ? "profit-neg" : ""}">${pSign}${pFmt}</td>`;
     }
 
     html += `<tr class="${rowClass}${divClass}">
@@ -980,7 +985,7 @@ function exportPairCSV() {
   rows.push([
     "Trade", "Type", "Date", "Days Held", "Dir",
     "T1", "T2", "T1 Log Px", "T2 Log Px", "Spread", "Z",
-    "Trade Beta", "Rolling Beta", "Spread PnL", "Total PnL",
+    "Trade Beta", "Rolling Beta", "Spread PnL ($)", "Total PnL ($)",
   ]);
   (data.blotter || []).forEach(r => {
     rows.push([
@@ -990,8 +995,8 @@ function exportPairCSV() {
       r.T1_Px, r.T2_Px, r.Spread, r.Z,
       r.TradeBeta   != null ? r.TradeBeta   : "",
       r.RollingBeta != null ? r.RollingBeta : "",
-      r.SpreadPnL   != null ? r.SpreadPnL   : "",
-      r.Profit      != null ? r.Profit      : "",
+      r.SpreadPnL   != null ? Math.round(r.SpreadPnL * 1e6) : "",
+      r.Profit      != null ? Math.round(r.Profit * 1e6)   : "",
     ]);
   });
 
